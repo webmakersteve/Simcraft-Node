@@ -1624,7 +1624,6 @@ v8::Local<Function> callback;
 
 void sim_t::register_node_callback(v8::Local<Function> cb) {
     callback = cb;
-    
 }
 
 bool sim_t::registered_callback() {
