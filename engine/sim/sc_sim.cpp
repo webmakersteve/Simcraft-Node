@@ -1618,6 +1618,26 @@ bool progress_bar_t::update( bool finished )
   return true;
 }
 
+#ifdef NODE_MODULE
+
+v8::Local<Function> callback;
+
+void sim_t::register_node_callback(v8::Local<Function> cb) {
+    callback = cb;
+    
+}
+
+bool sim_t::registered_callback() {
+    return callback != null;
+}
+
+v8::Local<Function> sim_t::get_callback() {
+    return callback;
+}
+
+
+#endif
+
 // sim_t::iterate ===========================================================
 
 bool sim_t::iterate()
@@ -1636,6 +1656,17 @@ bool sim_t::iterate()
       // We don't want to edit much to make maintenance easy to we're going to
       // add a new void method that calls a callback if one was registered to it.
       // That will happen in here
+      
+#ifdef NODE_MODULE
+      if (sim_t::registered_callback()) {
+          const unsigned argc = 1;
+          v8::Local<Value> argv[argc] = {
+              // Pass the percentage
+              v8::Local<Value>::New(String::New("15%"));
+          };
+          sim_t::get_callback()->Call(v8::Context::GetCurrent()->Global(), argc, argv);
+      }
+#endif
       
     if ( canceled )
     {
