@@ -10,3 +10,5 @@ simc.run({
   }
   console.log("You did " + data.dps + " dps!");
 });
+
+console.log(simc.version());

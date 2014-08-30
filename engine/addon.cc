@@ -108,12 +108,14 @@ Handle<Value> Run(const Arguments& args) {
 
           Local<Value> argv[argc] = { String::New(error_c_str), Local<Value>::New(Undefined()) };
           fn->Call(Context::GetCurrent()->Global(), argc, argv);
+
         } else {
 
           Local<Object> returnObj = CreateReturnObject(response->simulator);
 
           Local<Value> argv[argc] = { Local<Value>::New(Undefined()), Local<Value>::New(returnObj) };
           fn->Call(Context::GetCurrent()->Global(), argc, argv);
+
         }
 
       }
@@ -125,9 +127,17 @@ Handle<Value> Run(const Arguments& args) {
   return scope.Close(Undefined());
 }
 
+Handle<Value> Version(const Arguments& args) {
+  HandleScope scope;
+
+  return scope.Close(String::New(SC_VERSION));
+}
+
 void Init(Handle<Object> exports) {
   exports->Set(String::NewSymbol("run"),
       FunctionTemplate::New(Run)->GetFunction());
+  exports->Set(String::NewSymbol("version"),
+      FunctionTemplate::New(Version)->GetFunction());
 }
 
 NODE_MODULE(simc, Init)
