@@ -1,20 +1,30 @@
 #define BUILDING_NODE_EXTENSION
 #include <node.h>
+#include <v8.h>
 #include "simulationcraft.hpp"
+#include "addon.hpp"
 
 using namespace v8;
 using namespace std;
 
-
 class SimcraftResponseWrapper
 {
   public:
-    SimcraftResponseWrapper (sim_t & l, std::vector<std::string> array) : sim(l) {
+    SimcraftResponseWrapper() {}
+    SimcraftResponseWrapper ( vector<string> a) {
+      array = a;
+    };
+    ~SimcraftResponseWrapper () throw () {
+      //delete response;
+    }
+    void SetResponse() {
       std::streambuf* cout_sbuf = std::cout.rdbuf(); // save original sbuf
       std::streambuf* cerr_sbuf = std::cerr.rdbuf(); // save original sbuf
       std::ofstream   fout("/dev/null");
       std::cout.rdbuf(fout.rdbuf()); // redirect 'cout' to a 'fout'
       std::cerr.rdbuf(fout.rdbuf());
+
+      sim_t sim;
 
       response = sim.returns( array );
 
@@ -22,18 +32,29 @@ class SimcraftResponseWrapper
 
       std::cout.rdbuf(cout_sbuf); // restore the original stream buffer
       std::cerr.rdbuf(cerr_sbuf); // Restore original CERR
-
     };
-    ~SimcraftResponseWrapper () throw () {
-      delete response;
-    }
     sim_t_response* Response() {
+      if (!response)
+        SetResponse();
       return response;
-    }
+    };
   private:
-    sim_t& sim;
+    std::vector<std::string> array;
     sim_t_response* response;
 };
+
+struct Baton {
+    SimcraftResponseWrapper sim;
+    uv_work_t request;
+    v8::Persistent<v8::Function> callback;
+    int error_code;
+    std::string error_message;
+
+    // Custom data
+    int32_t result;
+
+};
+
 
 Local<Object> CreateReturnObject(sim_t* simulator) {
   Local<Object> returnObj = Object::New();
@@ -45,6 +66,67 @@ Local<Object> CreateReturnObject(sim_t* simulator) {
   return returnObj;
 
 }
+
+void AsyncWork(uv_work_t* req) {
+
+    Baton* baton = static_cast<Baton*>(req->data);
+
+    SimcraftResponseWrapper wrapper = baton->sim;
+
+    wrapper.SetResponse(); // Does the work here
+
+}
+
+void AsyncAfter(uv_work_t *req, int status) {
+    HandleScope scope;
+
+    Baton* baton = static_cast<Baton*>(req->data);
+
+    SimcraftResponseWrapper wrapper = baton->sim;
+    sim_t_response* response = wrapper.Response();
+
+    const unsigned argc = 2;
+    // Check if the simulation went through
+    std::vector<std::string> errors = response->simulator->error_list;
+    if (errors.size() > 0 || response->error != "") {
+      // There is an error object in the response too so we can check that
+      //throw the error
+      const char* error_c_str;
+
+      if (errors.size() > 0) {
+        error_c_str = errors[0].c_str();
+      } else {
+        error_c_str = response->error.c_str();
+      }
+
+      Local<Value> argv[argc] = { Exception::Error(String::New(error_c_str)), Local<Value>::New(Undefined()) };
+
+      TryCatch try_catch;
+      baton->callback->Call(Context::GetCurrent()->Global(), argc, argv);
+      if (try_catch.HasCaught()) {
+        node::FatalException(try_catch);
+      }
+
+    } else {
+
+      Local<Object> returnObj = CreateReturnObject(response->simulator);
+
+      Local<Value> argv[argc] = { Local<Value>::New(Undefined()), Local<Value>::New(returnObj) };
+
+      TryCatch try_catch;
+      baton->callback->Call(Context::GetCurrent()->Global(), argc, argv);
+      if (try_catch.HasCaught()) {
+        node::FatalException(try_catch);
+      }
+
+    }
+
+    // baton->callback->Dispose(); I dont understand it seems the spec says there is
+    delete baton;
+
+}
+
+
 
 Handle<Value> Run(const Arguments& args) {
 
@@ -84,41 +166,19 @@ Handle<Value> Run(const Arguments& args) {
 
     }
 
-    sim_t sim;
-    SimcraftResponseWrapper wrapper(sim,array);
-    sim_t_response* response(wrapper.Response());
+    if (args.Length() > 1 && args[1]->IsFunction()) {
 
-    if (args.Length() > 1) {
+      Local<Function> callback = Local<Function>::Cast(args[1]);
+      Persistent<Function> fn = Persistent<Function>::New(callback);
 
-      if (args[1]->IsFunction()) {
-        Handle<Function> fn = Handle<Function>::Cast(args[1]);
-        const unsigned argc = 2;
-        // Check if the simulation went through
-        std::vector<std::string> errors = response->simulator->error_list;
-        if (errors.size() > 0 || response->error != "") {
-          // There is an error object in the response too so we can check that
-          //throw the error
-          const char* error_c_str;
+      SimcraftResponseWrapper wrapper(array);
 
-          if (errors.size() > 0) {
-            error_c_str = errors[0].c_str();
-          } else {
-            error_c_str = response->error.c_str();
-          }
+      Baton* baton = new Baton();
+      baton->request.data = baton;
+      baton->callback = fn;
 
-          Local<Value> argv[argc] = { String::New(error_c_str), Local<Value>::New(Undefined()) };
-          fn->Call(Context::GetCurrent()->Global(), argc, argv);
-
-        } else {
-
-          Local<Object> returnObj = CreateReturnObject(response->simulator);
-
-          Local<Value> argv[argc] = { Local<Value>::New(Undefined()), Local<Value>::New(returnObj) };
-          fn->Call(Context::GetCurrent()->Global(), argc, argv);
-
-        }
-
-      }
+      uv_queue_work(uv_default_loop(), &baton->request,
+        AsyncWork, AsyncAfter);
 
     }
 

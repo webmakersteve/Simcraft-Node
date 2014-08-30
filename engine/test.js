@@ -2,7 +2,7 @@ var simc = require('./build/Release/simc');
 
 simc.run({
   "armory": "us,maelstrom,breyada",
-  "iterations": 2
+  "iterations": 1000
 }, function (err,data) {
   if (err) {
     console.log("Error: " + err);
