@@ -250,6 +250,7 @@ sim_t_response * sim_t::returns( std::vector<std::string>& args) {
     }
     
     if (cancelled) {
+        response->simulator = this;
         return response;
     }
     
@@ -297,7 +298,7 @@ sim_t_response * sim_t::returns( std::vector<std::string>& args) {
             // We would need to do the magic here. At this point all of the data we need
             response->simulator = this; //Just pass this to node. It has what we need
             // Since this is node, of course, we want callbacks for every time it incremements
-            response->error = "Success";
+            response->error = "";
         }
         else
             response->error = "Cancelled";
@@ -318,7 +319,7 @@ int main( int argc, char** argv )
     
     std::vector<std::string> array(1);
     
-    array[0] = "armory=us,illidan,john";
+    array[0] = "armory=us,ma,john";
     
     sim_t_response* response = sim.returns( array );
     
