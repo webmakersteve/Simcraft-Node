@@ -12,18 +12,26 @@ Handle<Value> Run(const Arguments& args) {
       return scope.Close(Undefined());
   }
 
+  String::AsciiValue ascii();
+  std::vector<std::string> array(1);
+
+  int argCurrent = 0;
+
   if (args[0]->IsObject()) {
     Handle<Object> object = Handle<Object>::Cast(args[0]);
-    Handle<Value> armoryValue = object->Get(String::New("armory"));
-    // Value like us,illidan,john
-    String::AsciiValue ascii(armoryValue);
+    Handle<Value> armory_value = object->Get(String::New("armory"));
 
+    // Value like us,illidan,john
+    String::AsciiValue ascii(armory_value);
+    std::string arg_armory = std::string("armory=") + *ascii;
+    array[argCurrent] = arg_armory;
+
+  } else {
+    return scope.Close(Undefined());
   }
 
   sim_t sim;
 
-  std::vector<std::string> array(1);
-  array[0] = "armory=us,illidan,john";
   sim_t_response* response (sim.returns( array ));
 
   double player_dps = response->simulator->active_player->collected_data.dps.mean();
