@@ -5,7 +5,49 @@
 using namespace v8;
 using namespace std;
 
+
+class SimcraftResponseWrapper
+{
+  public:
+    SimcraftResponseWrapper (sim_t & l, std::vector<std::string> array) : sim(l) {
+      std::streambuf* cout_sbuf = std::cout.rdbuf(); // save original sbuf
+      std::streambuf* cerr_sbuf = std::cerr.rdbuf(); // save original sbuf
+      std::ofstream   fout("/dev/null");
+      std::cout.rdbuf(fout.rdbuf()); // redirect 'cout' to a 'fout'
+      std::cerr.rdbuf(fout.rdbuf());
+
+      response = sim.returns( array );
+
+      // End muted code
+
+      std::cout.rdbuf(cout_sbuf); // restore the original stream buffer
+      std::cerr.rdbuf(cerr_sbuf); // Restore original CERR
+
+    };
+    ~SimcraftResponseWrapper () throw () {
+      delete response;
+    }
+    sim_t_response* Response() {
+      return response;
+    }
+  private:
+    sim_t& sim;
+    sim_t_response* response;
+};
+
+Local<Object> CreateReturnObject(sim_t* simulator) {
+  Local<Object> returnObj = Object::New();
+
+  double player_dps = simulator->active_player->collected_data.dps.mean();
+  Local<Number> dps = Number::New(player_dps);
+  returnObj->Set(String::New("dps"), dps);
+
+  return returnObj;
+
+}
+
 Handle<Value> Run(const Arguments& args) {
+
   HandleScope scope;
 
   if (args.Length() < 1) {
@@ -42,24 +84,9 @@ Handle<Value> Run(const Arguments& args) {
 
     }
 
-
-    // When using this as a node module we don't want simcraft to print anything
-
-    std::streambuf* cout_sbuf = std::cout.rdbuf(); // save original sbuf
-    std::streambuf* cerr_sbuf = std::cerr.rdbuf(); // save original sbuf
-    std::ofstream   fout("/dev/null");
-    std::cout.rdbuf(fout.rdbuf()); // redirect 'cout' to a 'fout'
-    std::cerr.rdbuf(fout.rdbuf());
-
-    // Muted code in here
     sim_t sim;
-    sim_t_response* response (sim.returns( array ));
-
-    // End muted code
-
-    std::cout.rdbuf(cout_sbuf); // restore the original stream buffer
-    std::cerr.rdbuf(cerr_sbuf); // Restore original CERR
-
+    SimcraftResponseWrapper wrapper(sim,array);
+    sim_t_response* response(wrapper.Response());
 
     if (args.Length() > 1) {
 
@@ -83,11 +110,7 @@ Handle<Value> Run(const Arguments& args) {
           fn->Call(Context::GetCurrent()->Global(), argc, argv);
         } else {
 
-          double player_dps = response->simulator->active_player->collected_data.dps.mean();
-          Local<Number> dps = Number::New(player_dps);
-
-          Local<Object> returnObj = Object::New();
-          returnObj->Set(String::New("DPS"), dps);
+          Local<Object> returnObj = CreateReturnObject(response->simulator);
 
           Local<Value> argv[argc] = { Local<Value>::New(Undefined()), Local<Value>::New(returnObj) };
           fn->Call(Context::GetCurrent()->Global(), argc, argv);
@@ -97,12 +120,6 @@ Handle<Value> Run(const Arguments& args) {
 
     }
 
-    delete response; // I guess should use RAII? Otherwise if we get an exception
-    // We get a GIANT problem (huge amounts of leaked memory)
-
-
-  } else {
-    return scope.Close(Undefined());
   }
 
   return scope.Close(Undefined());
