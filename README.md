@@ -43,7 +43,7 @@ simcraft.simulateRaw({
   'class': 'warrior',
   'equipment': {
     'head': {
-      'reforge': "mastery to haste',
+      'reforge': "mastery to haste",
       'id': 11111,
       'gems': ['blue', 'red']
     }
