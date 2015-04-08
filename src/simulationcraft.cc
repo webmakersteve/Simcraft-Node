@@ -8,33 +8,28 @@ class SimcraftResponseWrapper
 {
   public:
     SimcraftResponseWrapper() {}
-    SimcraftResponseWrapper ( vector<string> a) {
-      array = a;
-    };
+    SimcraftResponseWrapper ( vector<string> array) {};
     ~SimcraftResponseWrapper () throw () {
       //delete response;
     }
     void SetResponse() {
-      std::streambuf* cout_sbuf = std::cout.rdbuf(); // save original sbuf
-      std::streambuf* cerr_sbuf = std::cerr.rdbuf(); // save original sbuf
-      std::ofstream   fout("/dev/null");
-      std::cout.rdbuf(fout.rdbuf()); // redirect 'cout' to a 'fout'
-      std::cerr.rdbuf(fout.rdbuf());
 
       simnode_t sim;
-
       response = sim.returns( array );
 
-      // End muted code
+    };
+    void SetResponse(vector<string> a) {
+      array = a;
+      simnode_t sim;
+      response = sim.returns( a );
 
-      std::cout.rdbuf(cout_sbuf); // restore the original stream buffer
-      std::cerr.rdbuf(cerr_sbuf); // Restore original CERR
     };
     sim_t_response* Response() {
       if (!response)
         SetResponse();
       return response;
     };
+
   private:
     std::vector<std::string> array;
     sim_t_response* response;
@@ -81,6 +76,9 @@ void AsyncAfter(uv_work_t *req, int status) {
 
     SimcraftResponseWrapper wrapper = baton->sim;
     sim_t_response* response = wrapper.Response();
+
+    /*Exception::TypeError(
+        String::NewFromUtf8(isolate, "Wrong number of arguments")) */
 
     const unsigned argc = 2;
     // Check if the simulation went through
@@ -129,11 +127,13 @@ Handle<Value> Run(const Arguments& args) {
 
   HandleScope scope;
 
+
   if (args.Length() < 1) {
       return scope.Close(Undefined());
   }
 
   if (args[0]->IsObject()) {
+
     Handle<Object> object = Handle<Object>::Cast(args[0]);
 
     const Local<Array> props = object->GetPropertyNames();
@@ -141,14 +141,15 @@ Handle<Value> Run(const Arguments& args) {
 
     if (length < 1) {
       // Kill it with an error
+      return scope.Close(Undefined());
     }
 
     std::vector<std::string> array(length);
-
     std::string param_key_string;
 
     for (uint32_t i=0 ; i<length ; ++i)
     {
+
         const Local<Value> key = props->Get(i);
         const Local<Value> value = object->Get(key);
 
@@ -169,6 +170,7 @@ Handle<Value> Run(const Arguments& args) {
       Persistent<Function> fn = Persistent<Function>::New(callback);
 
       SimcraftResponseWrapper wrapper(array);
+      wrapper.SetResponse(array);
 
       Baton* baton = new Baton();
       baton->request.data = baton;
@@ -184,17 +186,11 @@ Handle<Value> Run(const Arguments& args) {
   return scope.Close(Undefined());
 }
 
-Handle<Value> Version(const Arguments& args) {
-  HandleScope scope;
-
-  return scope.Close(String::New(SC_VERSION));
-}
-
 void InitNodeAddon(Handle<Object> exports) {
   exports->Set(String::NewSymbol("run"),
       FunctionTemplate::New(Run)->GetFunction());
   exports->Set(String::NewSymbol("version"),
-      FunctionTemplate::New(Version)->GetFunction());
+      String::New(SC_VERSION));
 }
 
 NODE_MODULE(simcraft, InitNodeAddon)

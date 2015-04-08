@@ -1,3 +1,9 @@
 var simc = require('../build/Release/simcraft.node');
 
-console.log(simc);
+simc.run({
+  armory: 'us,illidan,john'
+}, function() {
+  console.log('hey');
+});
+
+console.log("Done");

@@ -16,9 +16,15 @@
 				'deps/v8-convert'
 			],
 
-			'cflags': [
-				'-Wall'
-			],
+			'cflags_cc!': [ '-fno-rtti' ],
+	        'cflags': [ '-fexceptions' ],
+	        'cflags_cc': ['-fexceptions'],
+
+			'defines': [
+	            'PIC',
+	            'HAVE_CONFIG_H',
+	            'SRC_UTIL_H_'
+	        ],
 
 			'conditions': [
 				['OS=="mac"', {
