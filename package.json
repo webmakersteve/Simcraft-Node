@@ -1,0 +1,22 @@
+{
+  "name": "simulationcraft",
+  "version": "0.0.0",
+  "description": "Simulationcraft Node.js bindings",
+  "main": "./lib/simc",
+  "directories": {
+    "doc": "docs",
+    "example": "examples",
+    "test": "test"
+  },
+  "scripts": {
+    "test": "grunt test"
+  },
+  "keywords": [
+    "World",
+    "of",
+    "Warcraft",
+    "Simulationcraft"
+  ],
+  "author": "Stephen Parente",
+  "license": "GPL"
+}
