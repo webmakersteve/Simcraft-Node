@@ -17,7 +17,7 @@
     },
 
     'include_dirs': [
-        'simc/engine/'
+        'simc/engine'
     ],
 
     'sources': [
@@ -87,11 +87,12 @@
     'cflags_cc!': [ '-fno-rtti' ],
     "cflags": [ '-fexceptions' ],
     'cflags_cc': ['-fexceptions'],
-    "conditions": [
+    'conditions': [
       ['OS=="mac"', {
         'xcode_settings': {
           'GCC_ENABLE_CPP_RTTI': 'YES',
           'GCC_ENABLE_CPP_EXCEPTIONS': 'YES', # -fexceptions
+          'GCC_ENABLE_CPP_RTTI': 'YES'
         }
       }]
 
