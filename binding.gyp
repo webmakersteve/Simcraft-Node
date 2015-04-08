@@ -1,7 +1,7 @@
 {
 	'targets': [
 		{
-			'target_name': 'simulationcraft',
+			'target_name': 'simcraft',
 
 			'sources': [
 				'src/simulationcraft.cc',
