@@ -5,6 +5,7 @@
 #ifndef SIMNODE_H
 #define SIMNODE_H
 
+#include <config.hpp>
 #include <v8.h>
 #include "cvv8/convert.hpp"
 #include <node.h>
@@ -23,6 +24,7 @@ using std::string;
 using std::vector;
 
 struct sim_t_response;
+struct sim_signal_handler_t;
 
 struct simnode_t : sim_t {
 
@@ -33,7 +35,7 @@ struct simnode_t : sim_t {
 struct sim_t_response {
   int iterations;
   float max_time;
-  float combat_Length;
+  float combat_length;
   int optimal_raid;
   std::string fight_style;
   std::string error;
@@ -41,6 +43,7 @@ struct sim_t_response {
   std::string wow_version;
   std::string wow_ptr_version;
   std::string build_level;
+  int canceled;
 
 	simnode_t *simulator;
 

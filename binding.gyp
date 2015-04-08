@@ -13,7 +13,6 @@
 			],
 
 			'include_dirs': [
-				'deps/simc',
 				'deps/v8-convert'
 			],
 
