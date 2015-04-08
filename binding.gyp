@@ -4,7 +4,8 @@
 			'target_name': 'simulationcraft',
 
 			'sources': [
-				'src/simulationcraft.cc'
+				'src/simulationcraft.cc',
+				'src/simnode_t.cc'
 			],
 
 			'dependencies': [
