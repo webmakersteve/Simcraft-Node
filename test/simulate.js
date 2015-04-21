@@ -1,7 +1,7 @@
 var simc = require('../build/Release/simcraft.node');
 
 simc.run({
-  armory: 'us,illidan,john'
+  armory: 'us,maelstrom,chaosity'
 }, function() {
   console.log('hey');
 });
